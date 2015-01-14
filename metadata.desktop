@@ -1,0 +1,17 @@
+[Desktop Entry]
+Name=kwt
+Comment=A simple KWin tiler.
+Icon=preferences-system-windows-script-test
+
+X-Plasma-API=javascript
+X-Plasma-MainScript=code/main.js
+
+X-KDE-PluginInfo-Author=Ricardo Liang
+X-KDE-PluginInfo-Email=ricardoliang@gmail.com
+X-KDE-PluginInfo-Name=kwt
+X-KDE-PluginInfo-Version=0.0.1
+
+X-KDE-PluginInfo-Depends=
+X-KDE-PluginInfo-License=GPL
+X-KDE-ServiceTypes=KWin/Script
+Type=Service
