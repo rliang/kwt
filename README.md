@@ -21,6 +21,7 @@ A simple KWin tiler.
 * Margins
 * Window Gaps
 * Per-window tiling
+* Works on Plasma 5
 
 ## TODO
 
@@ -29,4 +30,3 @@ A simple KWin tiler.
 * Per-window-class tiling
 * More layouts out of the box
 * Per-desktop layouts
-* Plasma 5 support
