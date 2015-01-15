@@ -8,8 +8,7 @@ var master_step = 0.05;
 
 function initClient(c) {
   if (c.floating === undefined)
-    if (c.minimized || c.fullScreen || c.shade || c.transient ||
-        c.specialWindow)
+    if (c.transient || c.specialWindow)
       c.floating = true;
   if (c.order === undefined)
     c.order = append_new ? Infinity : -1;
@@ -21,6 +20,7 @@ function filterClients() {
     if (c.screen !== workspace.activeScreen) return false;
     if (c.desktop !== workspace.currentDesktop) return false;
     if (!c.isCurrentTab) return false;
+    if (c.minimized || c.fullScreen || c.shade) return false;
     if (c.floating) return false;
     return true;
   });
