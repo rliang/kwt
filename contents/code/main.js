@@ -7,9 +7,10 @@ var master_ratio = 0.5;
 var master_step = 0.05;
 
 function initClient(c) {
-  if (c.floating === undefined && c.transient || c.minimized || c.fullScreen ||
-      c.shade || c.specialWindow)
-    c.floating = true;
+  if (c.floating === undefined)
+    if (c.minimized || c.fullScreen || c.shade || c.transient ||
+        c.specialWindow)
+      c.floating = true;
   if (c.order === undefined)
     c.order = append_new ? Infinity : -1;
 }
@@ -37,41 +38,46 @@ function orderClients() {
 }
 
 function applyMargin(g, top, bottom, left, right) {
-  g.y += top;
-  g.height -= top + bottom;
-  g.x += left;
-  g.width -= left + right;
+  if (bottom === undefined)
+    bottom = left = right = top;
+  return {
+    y: g.y + top,
+    height: g.height - (top + bottom),
+    x: g.x + left,
+    width: g.width - (left + right)
+  };
 }
 
-function layoutClient(c, i, g, clients) {
-  if (i < master_count) {
-    if (master_count < clients.length) {
-      g.width *= master_ratio;
-      g.height /= master_count;
+function layoutClients(clients, area) {
+  clients.forEach(function(c, i) {
+    var g = applyMargin(area, margins.top, margins.bottom,
+                        margins.left, margins.right);
+    var half = g.width * master_ratio;
+    if (i < master_count) {
+      if (master_count < clients.length) {
+        g.width = half;
+        g.height /= master_count;
+      } else {
+        g.height /= clients.length;
+      }
     } else {
-      g.height /= clients.length;
+      i -= master_count;
+      if (master_count > 0) {
+        g.x += half;
+        g.width *= 1 - master_ratio;
+      }
+      g.height /= clients.length - master_count;
     }
-  } else {
-    i -= master_count;
-    if (master_count > 0) {
-      g.x += g.width * master_ratio;
-      g.width *= 1 - master_ratio;
-    }
-    g.height /= clients.length - master_count;
-  }
-  g.y += i * g.height;
+    g.y += i * g.height;
+    c.geometry = applyMargin(g, gap);
+  });
 }
 
 function refresh() {
   if (!tiling) return;
-  orderClients().reduce(function(_, c, i, clients) {
-    var g = workspace.clientArea(KWin.PlacementArea, workspace.activeScreen,
-                                    workspace.currentDesktop);
-    applyMargin(g, margins.top, margins.bottom, margins.left, margins.right);
-    layoutClient(c, i, g, clients);
-    applyMargin(g, gap, gap, gap, gap);
-    c.geometry = g;
-  }, null);
+  layoutClients(orderClients(), workspace.clientArea(KWin.PlacementArea,
+                                                     workspace.activeScreen,
+                                                     workspace.currentDesktop));
 }
 
 function nextClient(n) {
