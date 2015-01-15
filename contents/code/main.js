@@ -74,28 +74,32 @@ function refresh() {
   }, null);
 }
 
-function next(n) {
+function nextClient(n) {
   var all = orderClients();
   if (!workspace.activeClient) return all[0];
-  if (Math.abs(n) > all.length) n %= all.length;
-  var k = workspace.activeClient.order + n;
-  if (!(k >= 0 && k < all.length)) {
-    if (n > 0)
-      k = n - 1;
-    else
-      k = all.length + n;
-  }
+  var k = workspace.activeClient.order;
+  if (k === undefined) k = 0;
+  k += n;
+  if (k >= all.length) return all[0];
+  if (k < 0) return all[all.length - 1];
   return all[k];
 }
 
-function activate(n) {
-  var c = next(n);
-  if (!c) return;
-  workspace.activeClient = c;
+function activateNext(n) {
+  workspace.activeClient = nextClient(n);
 }
 
-function swap(n) {
-  var c = next(n);
+function activateOther(c) {
+  orderClients().some(function(d) {
+    if (d != c) {
+      workspace.activeClient = d;
+      return true;
+    }
+  });
+}
+
+function swapNext(n) {
+  var c = nextClient(n);
   if (!c) return;
   var o = workspace.activeClient.order;
   workspace.activeClient.order = c.order;
@@ -124,13 +128,13 @@ function toggle() {
 }
 
 registerShortcut('Activate Next Tile', 'Activate Next Tile', 'Meta+J',
-                 function() { activate(1); });
+                 function() { activateNext(1); });
 registerShortcut('Activate Previous Tile', 'Activate Previous Tile', 'Meta+K',
-                 function() { activate(-1); });
+                 function() { activateNext(-1); });
 registerShortcut('Swap Next Tile', 'Swap Next Tile', 'Meta+Shift+J',
-                 function() { swap(1); });
+                 function() { swapNext(1); });
 registerShortcut('Swap Previous Tile', 'Swap Previous Tile', 'Meta+Shift+K',
-                 function() { swap(-1); });
+                 function() { swapNext(-1); });
 registerShortcut('Toggle Tiling Tile', 'Toggle Tiling Tile', 'Meta+T',
                  function() { toggle(); });
 registerShortcut('Toggle Tiling All Tiles', 'Toggle Tiling All Tiles', 'Meta+Shift+T',
@@ -144,7 +148,8 @@ registerShortcut('Add Master Tile', 'Add Master Tile', 'Meta+Shift+H',
 registerShortcut('Remove Master Tile', 'Remove Master Tile', 'Meta+Shift+L',
                  function() { add(-1); });
 
-workspace.currentDesktopChanged.connect(refresh);
 workspace.clientActivated.connect(refresh);
+workspace.currentDesktopChanged.connect(refresh);
+workspace.clientRemoved.connect(activateOther);
 
 refresh();
