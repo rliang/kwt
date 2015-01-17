@@ -11,6 +11,7 @@ A simple KWin tiler.
 
 * Configure shortcuts at Shortcuts and Gestures/Global Keyboard Shortcuts/KWin
 * For now, edit `main.js` for other variables
+* Optionally disable focus-stealing prevention to ensure opening/closing a window triggers a refresh
 
 ## Layouts
 
@@ -30,3 +31,4 @@ A simple KWin tiler.
 * Per-window-class tiling
 * More layouts out of the box
 * Per-desktop layouts
+* Make it work under focus-stealing prevention
