@@ -20,6 +20,8 @@ function filterClients() {
     if (c.screen !== workspace.activeScreen) return false;
     if (c.desktop !== workspace.currentDesktop) return false;
     if (!c.isCurrentTab) return false;
+    if (!c.closeable || !c.maximizable || !c.minimizable) return false;
+    if (!c.moveable || !c.resizeable) return false;
     if (c.minimized || c.fullScreen || c.shade) return false;
     if (c.floating) return false;
     return true;
