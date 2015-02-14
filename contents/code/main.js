@@ -1,6 +1,6 @@
 var tiling = true;
 var append_new = true;
-var margins = {top: 5, bottom: 10, left: 10, right: 10};
+var margins = {top: 8, bottom: 8, left: 8, right: 8};
 var gap = 10;
 var master_count = 1;
 var master_ratio = 0.5;
@@ -16,12 +16,14 @@ function initClient(c) {
 
 function filterClients() {
   return workspace.clientList().filter(function(c) {
-    initClient(c);
     if (c.screen !== workspace.activeScreen) return false;
     if (c.desktop !== workspace.currentDesktop) return false;
+    if (c.transient || c.specialWindow) return false;
+    if (!c.minimizable) return false;
     if (!c.isCurrentTab) return false;
-    if (!c.minimizable || !c.moveable || !c.resizeable) return false;
+    if (!c.moveable || !c.resizeable) return false;
     if (c.minimized || c.fullScreen || c.shade) return false;
+    initClient(c);
     if (c.floating) return false;
     return true;
   });
