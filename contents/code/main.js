@@ -1,164 +1,365 @@
-var tiling = true;
-var append_new = true;
-var margins = {top: 8, bottom: 8, left: 8, right: 8};
-var gap = 10;
-var master_count = 1;
-var master_ratio = 0.5;
-var master_step = 0.05;
+/** @type {Boolean} whether to tile windows at creation or wait for user input. */
+var AUTO_TILE = readConfig('auto-tile', true);
+/** @type {Boolean} whether to append new tiles to the end of the list or insert at the beginning. */
+var APPEND_TILES = readConfig('append-tiles', true);
+/** @type {Boolean} whether to instead maximize a lone tile. */
+var MAXIMIZE_SINGLE = readConfig('maximize-single', true);
+/** @type {[Number]} left, top, right and bottom margins around the screen's usable space. */
+var MARGIN_TOP = readConfig('screen-margin-top', 6);
+/** @type {[Number]} left, top, right and bottom margins around the screen's usable space. */
+var MARGIN_BOTTOM = readConfig('screen-margin-bottom', 6);
+/** @type {[Number]} left, top, right and bottom margins around the screen's usable space. */
+var MARGIN_LEFT = readConfig('screen-margin-left', 6);
+/** @type {[Number]} left, top, right and bottom margins around the screen's usable space. */
+var MARGIN_RIGHT = readConfig('screen-margin-right', 6);
+/** @type {Number} margin around each side of each tiled window. */
+var TILE_MARGIN = readConfig('tile-margin', 6);
+/** @type {Number} screen area split ratio between tiled windows. */
+var SPLIT_RATIO = readConfig('split-ratio', 0.5);
+/** @type {Number} split ratio step increment. */
+var SPLIT_RATIO_STEP = readConfig('split-ratio-step', 0.05);
 
-function initClient(c) {
-  if (c.floating === undefined)
-    if (c.transient || c.specialWindow)
-      c.floating = true;
-  if (c.order === undefined)
-    c.order = append_new ? Infinity : -1;
+/**
+ * Finds out whether a window contains the pointer.
+ *
+ * @param {[?]} array the array.
+ * @param {?} el the element which to find the neighbor.
+ * @param {Number} n 1 for the next neighbor, -1 for the previous.
+ * @return {?} the neighbor element, or undefined.
+ */
+function neighbor(array, el, n) {
+  n += array.indexOf(el);
+  var len = array.length;
+  return n >= len ? array[0] : n < 0 ? array[len - 1] : array[n];
 }
 
-function filterClients() {
-  return workspace.clientList().filter(function(c) {
-    if (c.screen !== workspace.activeScreen) return false;
-    if (c.desktop !== workspace.currentDesktop) return false;
-    if (c.transient || c.specialWindow) return false;
-    if (!c.minimizable) return false;
-    if (!c.isCurrentTab) return false;
-    if (!c.moveable || !c.resizeable) return false;
-    if (c.minimized || c.fullScreen || c.shade) return false;
-    initClient(c);
-    if (c.floating) return false;
-    return true;
-  });
-}
-
-function orderClients() {
-  return filterClients().sort(function(a, b) {
-    if (a.order > b.order) return 1;
-    if (a.order < b.order) return -1;
-    return 0;
-  }).map(function(c, i) {
-    c.order = i;
-    return c;
-  });
-}
-
-function applyMargin(g, top, bottom, left, right) {
-  if (bottom === undefined)
-    bottom = left = right = top;
+/**
+ * Applies a margin.
+ *
+ * @param {QRect} margin the margin.
+ * @param {QRect} area the area.
+ * @return {QRect} the new area.
+ */
+function margin(margin, area) {
   return {
-    y: g.y + top,
-    height: g.height - (top + bottom),
-    x: g.x + left,
-    width: g.width - (left + right)
+    x: area.x + (margin.x || 0),
+    y: area.y + (margin.y || 0),
+    width: area.width - (margin.width || 0) - (margin.x || 0),
+    height: area.height - (margin.height || 0) - (margin.y || 0),
+  }
+}
+
+/**
+ * Finds out whether a window should be focused when cycled.
+ *
+ * @param {KWin.Client} win the window.
+ * @return {Boolean} whether the window is focusable.
+ */
+function isFocusable(win) {
+  if (!win || !win.managed || win.deleted)
+    return false;
+  if (!win.normalWindow || win.specialWindow || win.transient)
+    return false;
+  if (!win.isCurrentTab || win.skipSwitcher || win.skipTaskbar || win.skipPager)
+    return false;
+  if (win.screen !== workspace.activeScreen)
+    return false;
+  if (win.desktop !== workspace.currentDesktop)
+    return false;
+  return true;
+}
+
+/**
+ * Finds out whether a window can be tiled.
+ *
+ * @param {KWin.Client} win the window.
+ * @return {Boolean} whether the window can be tiled.
+ */
+function isTileable(win) {
+  if (!isFocusable(win))
+    return false;
+  if (!win.moveable || !win.resizeable)
+    return false;
+  if (win.minimized || win.fullScreen)
+    return false;
+  return true;
+}
+
+/**
+ * Finds out whether a window is currently a tile.
+ *
+ * @param {KWin.Client} win the window.
+ * @return {Boolean} whether the window is currently a tile.
+ */
+function isTiling(win) {
+  return win.tiling;
+}
+
+/**
+ * Toggles whether a window is a tile, if possible.
+ *
+ * @param {KWin.Client} win the window.
+ * @param {Boolean} tiling whether the window is a tile.
+ */
+function setTiling(tiling, win) {
+  if (!isTileable(win))
+    return;
+  win.tiling = tiling;
+  if (win.tiling) {
+    win.order = APPEND_TILES ? Infinity : -Infinity;
+    win.rect = win.geometry;
+  } else {
+    win.geometry = win.rect;
+  }
+}
+
+/**
+ * Toggles whether a window is a tile, if possible.
+ *
+ * @param {KWin.Client} win the window to toggle.
+ */
+function toggleTiling(win) {
+  setTiling(!win.tiling, win);
+}
+
+/**
+ * Sets the order of a window.
+ *
+ * @param {KWin.Client} win the window.
+ * @param {Number} i the order.
+ */
+function setOrder(win, i) {
+  win.order = i;
+}
+
+/**
+ * Compares two windows for sorting.
+ *
+ * @param {KWin.Client} win1 one window.
+ * @param {KWin.Client} win2 the other window.
+ * @return {Boolean} 1, 0 or -1.
+ */
+function compare(win1, win2) {
+  return !win1.tiling ? -1 : !win2.tiling ? 1 :
+    win1.order > win2.order ? 1 :
+    win1.order < win2.order ? -1 : 0;
+}
+
+/**
+ * Swaps the order of two windows.
+ *
+ * @param {KWin.Client} win1 one window.
+ * @param {KWin.Client} win2 the other window.
+ */
+function swap(win1, win2) {
+  if (!win1 || !win2)
+    return;
+  var tmp = win1.order;
+  win1.order = win2.order;
+  win2.order = tmp;
+}
+
+/**
+ * Initializes a newly created window.
+ *
+ * Makes it a tile if possible.
+ *
+ * @param {KWin.Client} win the window to initialize.
+ */
+function init(win) {
+  setTiling(AUTO_TILE, win);
+}
+
+/**
+ * Move-resizes a tile, subtracting the occupied area from the remaining
+ * area.
+ *
+ * Will also apply the tile margin and un-minimize and un-maximize it if
+ * needed.
+ *
+ * @param {KWin.Client} win the tile to move-resize.
+ * @param {QRect} area the area to fill.
+ */
+function resize(win, area) {
+  win.minimized = false;
+  var m = {x: TILE_MARGIN, y: TILE_MARGIN, width: TILE_MARGIN, height: TILE_MARGIN};
+  win.geometry = margin(m, area);
+}
+
+/**
+ * Tiles a single window according to the layout.
+ *
+ * Fills a given part of the remaining area according to the split ratio.
+ *
+ * @param {{area: QRect, part: String|undefined}} the state.
+ * @param {KWin.Client} win the window to lay out.
+ * @return {{area: QRect, part: String}} the new state.
+ */
+function spiral(state, win) {
+  var area = state.area;
+  var ratio = SPLIT_RATIO;
+  var fill = {
+    left: margin({width: area.width * (1 - ratio)}, state.area),
+    up: margin({height: area.height * (1 - ratio)}, state.area),
+    right: margin({x: area.width * ratio}, state.area),
+    down: margin({y: area.height * ratio}, state.area),
   };
+  var next = {left: 'up', up: 'right', right: 'down', down: 'left'};
+  var opposite = {left: 'right', up: 'down', right: 'left', down: 'up'};
+  if (!state.part)
+    state.part = area.width > area.height ? 'left' : 'up';
+  resize(win, fill[state.part]);
+  return {part: next[state.part], area: fill[opposite[state.part]]};
 }
 
-function layoutClients(clients, area) {
-  clients.forEach(function(c, i) {
-    var g = applyMargin(area, margins.top, margins.bottom,
-                        margins.left, margins.right);
-    var half = g.width * master_ratio;
-    if (i < master_count) {
-      if (master_count < clients.length) {
-        g.width = half;
-        g.height /= master_count;
-      } else {
-        g.height /= clients.length;
-      }
-    } else {
-      i -= master_count;
-      if (master_count > 0) {
-        g.x += half;
-        g.width *= 1 - master_ratio;
-      }
-      g.height /= clients.length - master_count;
-    }
-    g.y += i * g.height;
-    c.geometry = applyMargin(g, gap);
-  });
+/**
+ * Reductor method to lay out a single tile.
+ *
+ * @param {{area: [Number]}} state the remaining available area and other
+ * state information set by internal methods.
+ * @param {KWin.Client} win the current window.
+ * @param {Number} i the current window index.
+ * @param {[KWin.Client]} wins all the windows.
+ * @return {{area: [Number]}} the currently reduced state.
+ */
+function layout(state, win, i, wins) {
+  if (MAXIMIZE_SINGLE && wins.length <= 1) {
+    win.geometry = workspace.clientArea(KWin.MaximizeArea, workspace.activeScreen, workspace.currentDesktop);
+    return state;
+  }
+  if (i >= wins.length - 1) {
+    resize(win, state.area);
+    return state;
+  }
+  return spiral(state, win);
 }
 
+/**
+ * Retrieves the ordered list of focusable windows.
+ *
+ * @return {[KWin.Client]} the windows.
+ */
+function getWindows() {
+  return workspace.clientList().filter(isFocusable).sort(compare);
+}
+
+/**
+ * Retrieves ordered list of tiles.
+ *
+ * @return {[KWin.Client]} the current tiles.
+ */
+function getTiles() {
+  return getWindows().filter(isTiling);
+}
+
+/**
+ * Refreshes all the tiles' positions.
+ */
 function refresh() {
-  if (!tiling) return;
-  layoutClients(orderClients(), workspace.clientArea(KWin.PlacementArea,
-                                                     workspace.activeScreen,
-                                                     workspace.currentDesktop));
+  getWindows().forEach(setOrder);
+  var m = {x: MARGIN_LEFT, y: MARGIN_TOP, width: MARGIN_RIGHT, height: MARGIN_BOTTOM};
+  var area = workspace.clientArea(KWin.PlacementArea, workspace.activeScreen, workspace.currentDesktop);
+  getTiles().reduce(layout, {area: margin(m, area)});
 }
 
-function nextClient(n) {
-  var all = orderClients();
-  if (!workspace.activeClient) return all[0];
-  var k = workspace.activeClient.order;
-  if (k === undefined) k = 0;
-  k += n;
-  if (k >= all.length) return all[0];
-  if (k < 0) return all[all.length - 1];
-  return all[k];
-}
-
-function activateNext(n) {
-  workspace.activeClient = nextClient(n);
-}
-
-function activateOther(c) {
-  orderClients().some(function(d) {
-    if (d != c) {
-      workspace.activeClient = d;
-      return true;
-    }
-  });
-}
-
-function swapNext(n) {
-  var c = nextClient(n);
-  if (!c) return;
-  var o = workspace.activeClient.order;
-  workspace.activeClient.order = c.order;
-  c.order = o;
+/**
+ * Toggles whether the currently focused window is a tile, if possible.
+ */
+function toggleTile() {
+  toggleTiling(workspace.activeClient);
   refresh();
 }
 
-function increase(n) {
-  master_ratio += master_step * n;
-  if (master_ratio < 0) master_ratio = 0;
-  if (master_ratio > 1) master_ratio = 1;
+/**
+ * Focuses a neighbor window in-order.
+ *
+ * @param {Number} n 1 to focus the next, -1 the previous.
+ */
+function focusNeighbor(n) {
+  workspace.activeClient = neighbor(getWindows(), workspace.activeClient, n);;
   refresh();
 }
 
-function add(n) {
-  master_count += n;
-  if (master_count < 0) master_count = 0;
+/**
+ * Focuses the next window.
+ */
+function focusNext() {
+  focusNeighbor(1);
+}
+
+/**
+ * Focuses the previous window.
+ */
+function focusPrevious() {
+  focusNeighbor(-1);
+}
+
+/**
+ * Swaps the currently focused tile with a neighbor tile.
+ *
+ * @param {Number} n 1 to swap forward, -1 backward.
+ */
+function swapNeighborTile(n) {
+  swap(workspace.activeClient, neighbor(getTiles(), workspace.activeClient, n));
   refresh();
 }
 
-function toggle() {
-  var c = workspace.activeClient;
-  if (!c) return;
-  c.floating = !c.floating;
+/**
+ * Swaps the currenly focused tile with the next tile.
+ */
+function swapNextTile() {
+  swapNeighborTile(1);
+}
+
+/**
+ * Swaps the currenly focused tile with the previous tile.
+ */
+function swapPreviousTile() {
+  swapNeighborTile(-1);
+}
+
+/**
+ * Increments the split ratio by the split step times a given multiplier.
+ *
+ * @param {Number} n 1 to increase, -1 to decrease.
+ */
+function incrementSplitRatio(n) {
+  SPLIT_RATIO += SPLIT_RATIO_STEP * n;
   refresh();
 }
 
-registerShortcut('Activate Next Tile', 'Activate Next Tile', 'Meta+J',
-                 function() { activateNext(1); });
-registerShortcut('Activate Previous Tile', 'Activate Previous Tile', 'Meta+K',
-                 function() { activateNext(-1); });
-registerShortcut('Swap Next Tile', 'Swap Next Tile', 'Meta+Shift+J',
-                 function() { swapNext(1); });
-registerShortcut('Swap Previous Tile', 'Swap Previous Tile', 'Meta+Shift+K',
-                 function() { swapNext(-1); });
-registerShortcut('Toggle Tiling Tile', 'Toggle Tiling Tile', 'Meta+T',
-                 function() { toggle(); });
-registerShortcut('Toggle Tiling All Tiles', 'Toggle Tiling All Tiles', 'Meta+Shift+T',
-                 function() { tiling = !tiling; refresh(); });
-registerShortcut('Increase Master Tile', 'Increase Master Tile', 'Meta+L',
-                 function() { increase(1); });
-registerShortcut('Decrease Master Tile', 'Decrease Master Tile', 'Meta+H',
-                 function() { increase(-1); });
-registerShortcut('Add Master Tile', 'Add Master Tile', 'Meta+Shift+H',
-                 function() { add(1); });
-registerShortcut('Remove Master Tile', 'Remove Master Tile', 'Meta+Shift+L',
-                 function() { add(-1); });
+/**
+ * Increases the split ratio.
+ */
+function increaseSplitRatio() {
+  incrementSplitRatio(1);
+}
 
+/**
+ * Decreases the split ratio.
+ */
+function decreaseSplitRatio() {
+  incrementSplitRatio(-1);
+}
+
+registerShortcut('TileToggle', 'Toggle Tiling',
+  'Meta+M', toggleTile);
+registerShortcut('TileActivateNext', 'Activate Next Tile',
+  'Meta+J', focusNext);
+registerShortcut('TileActivatePrevious', 'Activate Previous Tile',
+  'Meta+K', focusPrevious);
+registerShortcut('TileSwapNext', 'Swap Next Tile',
+  'Meta+Shift+J', swapNextTile);
+registerShortcut('TileSwapPrevious', 'Swap Previous Tile',
+  'Meta+Shift+K', swapPreviousTile);
+registerShortcut('TileSplitIncrease', 'Increase Tiling Split Ratio',
+  'Meta+L', increaseSplitRatio);
+registerShortcut('TileSplitDecrease', 'Decrease Tiling Split Ratio',
+  'Meta+H', decreaseSplitRatio);
+
+workspace.clientAdded.connect(init);
 workspace.clientActivated.connect(refresh);
+workspace.clientRemoved.connect(refresh);
 workspace.currentDesktopChanged.connect(refresh);
-workspace.clientRemoved.connect(activateOther);
 
 refresh();

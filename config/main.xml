@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name=""/>
+  <group name="">
+    <entry name="auto-tile" type="bool">
+      <default>true</default>
+      <label>Whether to tile windows at creation or wait for user input.</label>
+    </entry>
+    <entry name="append-tiles" type="bool">
+      <default>true</default>
+      <label>Whether to append new tiles to the end of the list or insert at the beginning.</label>
+    </entry>
+    <entry name="maximize-single" type="bool">
+      <default>true</default>
+      <label>Whether to maximize a tile if it is the only one.</label>
+    </entry>
+    <entry name="screen-margin-top" type="int">
+      <label>Top margin around the screen's usable space.</label>
+      <default>6</default>
+    </entry>
+    <entry name="screen-margin-bottom" type="int">
+      <label>Bottom margin around the screen's usable space.</label>
+      <default>6</default>
+    </entry>
+    <entry name="screen-margin-left" type="int">
+      <label>Left margin around the screen's usable space.</label>
+      <default>6</default>
+    </entry>
+    <entry name="screen-margin-right" type="int">
+      <label>Right margin around the screen's usable space.</label>
+      <default>6</default>
+    </entry>
+    <entry name="tile-margin" type="int">
+      <label>Margin around each side of each tiled window.</label>
+      <default>6</default>
+    </entry>
+    <entry name="split-ratio" type="float">
+      <label>Screen area split ratio between tiled windows.</label>
+      <default>0.5</default>
+    </entry>
+    <entry name="split-ratio-step" type="float">
+      <label>Split ratio step increment.</label>
+      <default>0.05</default>
+    </entry>
+  </group>
+</kcfg>
