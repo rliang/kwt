@@ -20,7 +20,7 @@ var SPLIT_RATIO = readConfig('split-ratio', 0.5);
 var SPLIT_RATIO_STEP = readConfig('split-ratio-step', 0.05);
 
 /**
- * Finds out whether a window contains the pointer.
+ * Finds the neighbor element of an array.
  *
  * @param {[?]} array the array.
  * @param {?} el the element which to find the neighbor.
