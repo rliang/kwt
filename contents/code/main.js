@@ -102,7 +102,7 @@ function isTiling(win) {
  * @param {KWin.Client} win the window.
  * @param {Boolean} tiling whether the window is a tile.
  */
-function setTiling(tiling, win) {
+function setTiling(win, tiling) {
   if (!isTileable(win))
     return;
   win.tiling = tiling;
@@ -120,7 +120,7 @@ function setTiling(tiling, win) {
  * @param {KWin.Client} win the window to toggle.
  */
 function toggleTiling(win) {
-  setTiling(!win.tiling, win);
+  setTiling(win, !win.tiling);
 }
 
 /**
@@ -168,7 +168,7 @@ function swap(win1, win2) {
  * @param {KWin.Client} win the window to initialize.
  */
 function init(win) {
-  setTiling(AUTO_TILE, win);
+  setTiling(win, AUTO_TILE);
 }
 
 /**
