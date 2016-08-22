@@ -28,9 +28,16 @@ var SPLIT_RATIO_STEP = readConfig('split-ratio-step', 0.05);
  * @return {?} the neighbor element, or undefined.
  */
 function neighbor(array, el, n) {
-  n += array.indexOf(el);
-  var len = array.length;
-  return n >= len ? array[0] : n < 0 ? array[len - 1] : array[n];
+  for (var i = 0; i < array.length; i++) {
+    if (array[i] != el)
+      continue;
+    var k = i + n;
+    if (k >= array.length)
+      return array[0];
+    if (k <= 0)
+      return array[array.length - 1];
+    return array[k];
+  }
 }
 
 /**
