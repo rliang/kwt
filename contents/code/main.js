@@ -34,7 +34,7 @@ function neighbor(array, el, n) {
     var k = i + n;
     if (k >= array.length)
       return array[0];
-    if (k <= 0)
+    if (k < 0)
       return array[array.length - 1];
     return array[k];
   }
@@ -141,7 +141,7 @@ function setOrder(win, i) {
  * @return {Boolean} 1, 0 or -1.
  */
 function compare(win1, win2) {
-  return !win1.tiling ? -1 : !win2.tiling ? 1 :
+  return !isTiling(win1) ? -1 : !isTiling(win2) ? 1 :
     win1.order > win2.order ? 1 :
     win1.order < win2.order ? -1 : 0;
 }

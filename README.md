@@ -7,7 +7,7 @@ A hackable KWin tiling window manager.
 ```sh
 git clone https://github.com/rliang/kwt ~/.local/share/kwin/scripts/kwt
 plasmapkg -t kwinscript -i ~/.local/share/kwin/scripts/kwt
-qdbus org.kde.KWin /Scripting loadScript ~/.local/share/kwin/scripts/kwt kwt
+qdbus org.kde.KWin /KWin reconfigure
 ```
 
 ## Default Shortcuts
