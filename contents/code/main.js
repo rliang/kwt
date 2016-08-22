@@ -4,13 +4,13 @@ var AUTO_TILE = readConfig('auto-tile', true);
 var APPEND_TILES = readConfig('append-tiles', true);
 /** @type {Boolean} whether to instead maximize a lone tile. */
 var MAXIMIZE_SINGLE = readConfig('maximize-single', true);
-/** @type {[Number]} left, top, right and bottom margins around the screen's usable space. */
+/** @type {[Number]} top margin around the screen's usable space. */
 var MARGIN_TOP = readConfig('screen-margin-top', 6);
-/** @type {[Number]} left, top, right and bottom margins around the screen's usable space. */
+/** @type {[Number]} bottom margin around the screen's usable space. */
 var MARGIN_BOTTOM = readConfig('screen-margin-bottom', 6);
-/** @type {[Number]} left, top, right and bottom margins around the screen's usable space. */
+/** @type {[Number]} left margin around the screen's usable space. */
 var MARGIN_LEFT = readConfig('screen-margin-left', 6);
-/** @type {[Number]} left, top, right and bottom margins around the screen's usable space. */
+/** @type {[Number]} right margin around the screen's usable space. */
 var MARGIN_RIGHT = readConfig('screen-margin-right', 6);
 /** @type {Number} margin around each side of each tiled window. */
 var TILE_MARGIN = readConfig('tile-margin', 6);
@@ -276,7 +276,7 @@ function toggleTile() {
  * @param {Number} n 1 to focus the next, -1 the previous.
  */
 function focusNeighbor(n) {
-  workspace.activeClient = neighbor(getWindows(), workspace.activeClient, n);;
+  workspace.activeClient = neighbor(getWindows(), workspace.activeClient, n);
   refresh();
 }
 
