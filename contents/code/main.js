@@ -93,7 +93,7 @@ function isTileable(win) {
  * @return {Boolean} whether the window is currently a tile.
  */
 function isTiling(win) {
-  return win.tiling;
+  return win.tiling && !win.fullScreen;
 }
 
 /**
