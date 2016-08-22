@@ -63,15 +63,11 @@ function margin(margin, area) {
  * @return {Boolean} whether the window is focusable.
  */
 function isFocusable(win) {
-  if (!win || !win.managed || win.deleted)
+  if (!win)
     return false;
-  if (!win.normalWindow || win.specialWindow || win.transient)
+  if (win.skipSwitcher || win.skipTaskbar || win.skipPager)
     return false;
-  if (!win.isCurrentTab || win.skipSwitcher || win.skipTaskbar || win.skipPager)
-    return false;
-  if (win.screen !== workspace.activeScreen)
-    return false;
-  if (win.desktop !== workspace.currentDesktop)
+  if (win.screen !== workspace.activeScreen || win.desktop !== workspace.currentDesktop)
     return false;
   return true;
 }
@@ -86,8 +82,6 @@ function isTileable(win) {
   if (!isFocusable(win))
     return false;
   if (!win.moveable || !win.resizeable)
-    return false;
-  if (win.minimized || win.fullScreen)
     return false;
   return true;
 }
