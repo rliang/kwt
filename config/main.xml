@@ -14,24 +14,8 @@
       <default>true</default>
       <label>Whether to maximize a tile if it is the only one.</label>
     </entry>
-    <entry name="screen-margin-top" type="int">
-      <label>Top margin around the screen's usable space.</label>
-      <default>6</default>
-    </entry>
-    <entry name="screen-margin-bottom" type="int">
-      <label>Bottom margin around the screen's usable space.</label>
-      <default>6</default>
-    </entry>
-    <entry name="screen-margin-left" type="int">
-      <label>Left margin around the screen's usable space.</label>
-      <default>6</default>
-    </entry>
-    <entry name="screen-margin-right" type="int">
-      <label>Right margin around the screen's usable space.</label>
-      <default>6</default>
-    </entry>
-    <entry name="tile-margin" type="int">
-      <label>Margin around each side of each tiled window.</label>
+    <entry name="gaps" type="int">
+      <label>Gaps around the screen space and between tiles.</label>
       <default>6</default>
     </entry>
     <entry name="split-ratio" type="float">
