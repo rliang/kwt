@@ -10,25 +10,27 @@ plasmapkg -t kwinscript -i ~/.local/share/kwin/scripts/kwt
 qdbus org.kde.KWin /KWin reconfigure
 ```
 
-## Default Shortcuts
+## Default Shortcuts `~/.config/kglobalshortcutsrc`
 
-* `Meta+M`: Toggle Tiling
-* `Meta+J`: Activate Next Tile
-* `Meta+K`: Activate Previous Tile
-* `Meta+Shift+J`: Swap Next Tile
-* `Meta+Shift+K`: Swap Previous Tile
-* `Meta+L`: Increase Tiling Split Ratio
-* `Meta+H`: Decrease Tiling Split Ratio
+* `Alt+C` Close Window
+* `Alt+D` Next Desktop
+* `Alt+U` Previous Desktop
+* `Alt+Shift+D` Window To Next Desktop
+* `Alt+Shift+U` Window To Previous Desktop
+* `Alt+M` Toggle Tiling
+* `Alt+J` Cycle Next Window
+* `Alt+K` Cycle Previous Window
+* `Alt+Shift+J` Swap Next Tile
+* `Alt+Shift+K` Swap Previous Tile
+* `Alt+L` Increase Split
+* `Alt+H` Decrease Split
 
-## Default Options
+## Default Options `~/.config/kwtrc`
 
-* `auto-tile: true`: Whether to tile windows at creation or wait for user input.
-* `append-tiles: true`: Whether to append new tiles to the end of the list or insert at the beginning.
-* `maximize-single: true`: Whether to maximize a tile if it is the only one.
-* `screen-margin-top: 6`: Top margin around the screen's usable space.
-* `screen-margin-bottom: 6`: Bottom margin around the screen's usable space.
-* `screen-margin-left: 6`: Left margin around the screen's usable space.
-* `screen-margin-right: 6`: Right margin around the screen's usable space.
-* `tile-margin: 6`: Margin around each side of each tiled window.
-* `split-ratio: 0.5`: Screen area split ratio between tiled windows.
-* `split-ratio-step: 0.05`: Split ratio step increment.
+`[kwt]`
+* `auto-tile=true` Whether to tile windows at creation or wait for user input.
+* `append-tiles=true` Whether to append new tiles to the end of the list or insert at the beginning.
+* `maximize-single=true` Whether to maximize a tile if it is the only one.
+* `gaps=6` Gaps around the screen space and between tiles.
+* `split-ratio=0.5` Screen area split ratio between tiled windows.
+* `split-ratio-step=0.05` Split ratio step increment.
