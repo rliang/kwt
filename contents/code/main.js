@@ -4,7 +4,11 @@ var AUTO_TILE = readConfig('auto-tile', true)
 var APPEND_TILES = readConfig('append-tiles', true)
 /** @type {Boolean} whether to instead maximize a lone tile. */
 var MAXIMIZE_SINGLE = readConfig('maximize-single', true)
-/** @type {Number} gaps around the screen space and between tiles. */
+/** @type {Boolean} whether to remove borders from maximized tiled windows. */
+var MAXIMIZE_NOBORDER = readConfig('maximize-noborder', true)
+/** @type {Boolean} whether to remove borders from tiled windows. */
+var TILES_NOBORDER = readConfig('tiles-noborder', false)
+/** @type {Number} gaps around the screen space and between tiled windows. */
 var GAPS = readConfig('gaps', 12)
 /** @type {Number} screen area split ratio between tiled windows. */
 var SPLIT_RATIO = readConfig('split-ratio', 0.5)
@@ -17,22 +21,20 @@ var SPLIT_RATIO_STEP = readConfig('split-ratio-step', 0.05)
  * @param {KWin.Client} win the window.
  * @return {Boolean} whether the window is cycleable.
  */
-function winCycleable(win) {
-  return (win && win.closeable && win.managed && !win.deleted
+function winIsCycleable(win) {
+  return win && win.managed && !win.deleted && !win.specialWindow
     && !win.skipSwitcher && !win.skipTaskbar && !win.skipPager
-      && win.desktop === workspace.currentDesktop
-      && win.screen === workspace.activeScreen)
 }
 
 /**
- * Checks whether a window is tileable.
+ * Checks whether a window is initially tileable.
  *
  * @param {KWin.Client} win the window.
  * @return {Boolean} whether the window is tileable.
  */
-function winTileable(win) {
-  return (winCycleable(win) && win.moveable && win.resizeable
-    && !win.transient && !win.specialWindow && !win.fullScreen)
+function winIsInitiallyTileable(win) {
+  return winIsCycleable(win) && !win.transient
+    && win.moveable && win.resizeable && win.closeable
 }
 
 /**
@@ -41,8 +43,8 @@ function winTileable(win) {
  * @param {KWin.Client} win the window.
  * @return {Boolean} whether the window is tiled.
  */
-function winTiled(win) {
-  return win.tiled
+function winIsTiled(win) {
+  return win._isTiled && !win.fullScreen
 }
 
 /**
@@ -51,8 +53,9 @@ function winTiled(win) {
  * @param {KWin.Client} win the window.
  */
 function winInit(win) {
-  win.tiled = winTileable(win) && AUTO_TILE
-  win.index = APPEND_TILES ? Infinity : -Infinity
+  win._index = APPEND_TILES ? Infinity : -Infinity
+  win._isTiled = AUTO_TILE && winIsInitiallyTileable(win)
+  win._hadBorder = !win.noBorder
 }
 
 /**
@@ -60,9 +63,10 @@ function winInit(win) {
  *
  * @param {KWin.Client} win the window.
  * @param {Number} i the index.
+ * @return {KWin.Client} the window.
  */
 function winReorder(win, i) {
-  win.index = i
+  win._index = i
 }
 
 /**
@@ -73,8 +77,8 @@ function winReorder(win, i) {
  * @return {Number} 1, 0 or -1.
  */
 function winCompare(win1, win2) {
-  return (!winTiled(win1) ? -1 : !winTiled(win2) ? 1 :
-    win1.index > win2.index ? 1 : win1.index < win2.index ? -1 : 0)
+  return (!winIsTiled(win1) ? -1 : !winIsTiled(win2) ? 1 :
+    win1._index > win2._index ? 1 : win1._index < win2._index ? -1 : 0)
 }
 
 /**
@@ -83,54 +87,28 @@ function winCompare(win1, win2) {
  * @param {KWin.Client} win1 one window.
  * @param {KWin.Client} win2 the other window.
  */
-function winSwap(win1, win2) {
+function winSwapTile(win1, win2) {
   if (win1 && win2) {
-    var t = win1.index
-    win1.index = win2.index
-    win2.index = t
+    var i = win1._index
+    win1._index = win2._index
+    win2._index = i
   }
 }
 
 /**
- * Finds the neighbor of the active window inside an array.
+ * Finds the neighbor of a window inside a list.
  *
- * @param {[KWin.Client]} v the array.
+ * @param {KWin.Client} win the window to find the neighbor.
+ * @param {[KWin.Client]} wins the window list.
  * @param {Number} n 1 for the next neighbor, -1 for the previous.
+ * @param {[KWin.Client]} wins the window list.
  * @return {KWin.Client?} the next or previous neighbor, or undefined.
  */
-function winActiveNeighbor(v, n) {
-  for (var i = 0; i < v.length; i++)
-    if (v[i] == workspace.activeClient)
-      return v[i + n] || v[n > 0 ? 0 : v.length - 1]
-  return v[0]
-}
-
-/**
- * Retrieves a list of all cycleable windows sorted by index.
- *
- * @return {[KWin.Client]} the window list.
- */
-function allCycleables() {
-  return workspace.clientList().filter(winCycleable).sort(winCompare)
-}
-
-/**
- * Retrieves a list of all tiled windows sorted by index.
- *
- * @return {[KWin.Client]} the window list.
- */
-function allTiles() {
-  return allCycleables().filter(winTiled)
-}
-
-/**
- * Retrieves an area.
- *
- * @param {KWin.WorkspaceWrapper.ClientAreaOption} t the type of area.
- * @return {QRect} the retrieved area.
- */
-function area(t) {
-  return workspace.clientArea(t, workspace.activeScreen, workspace.currentDesktop)
+function winNeighbor(win, n, wins) {
+  for (var i = 0; i < wins.length; i++)
+    if (wins[i] == win)
+      return wins[i + n] || wins[n > 0 ? 0 : wins.length - 1]
+  return wins[0]
 }
 
 /**
@@ -176,6 +154,24 @@ function areaFillPart(area, part) {
 }
 
 /**
+ * Groups all windows by desktop and screen.
+ *
+ * @return {[[[KWin.Client]]]} the window list grouped by desktops and screens.
+ */
+function groupWindows() {
+  var groups = []
+  for (var s = 0; s < workspace.numScreens; s++) {
+    groups[s] = []
+    for (var d = 0; d < workspace.desktops; d++) {
+      groups[s][d] = workspace.clientList().filter(function(win) {
+        return (win.screen === s) && (win.onAllDesktops || win.desktop === d)
+      }).sort(winCompare)
+    }
+  }
+  return groups
+}
+
+/**
  * Applies the layout to a tile.
  *
  * @param {{area: QRect, part: String?}} the current state.
@@ -187,12 +183,16 @@ function areaFillPart(area, part) {
 function layoutApply(state, win, i, wins) {
   if (!state.part)
     state.part = state.area.width > state.area.height ? 'left' : 'up'
-  if (wins.length === 1 && MAXIMIZE_SINGLE)
-    win.geometry = area(KWin.MaximizeArea)
-  else if (i >= wins.length - 1)
+  if (wins.length === 1 && MAXIMIZE_SINGLE) {
+    win.noBorder = MAXIMIZE_NOBORDER
+    win.geometry = workspace.clientArea(KWin.MaximizeArea, win.screen, win.desktop)
+  } else if (i >= wins.length - 1) {
+    win.noBorder = !win._hadBorder && TILES_NOBORDER
     win.geometry = areaGap(state.area)
-  else
+  } else {
+    win.noBorder = !win._hadBorder && TILES_NOBORDER
     win.geometry = areaGap(areaFillPart(state.area, state.part))
+  }
   state.area = areaFillPart(state.area, {
     left: 'right', up: 'down', right: 'left', down: 'up',
   }[state.part])
@@ -206,16 +206,25 @@ function layoutApply(state, win, i, wins) {
  * Refreshes the layout.
  */
 function layoutRefresh() {
-  allCycleables().forEach(winReorder)
-  allTiles().reduce(layoutApply, {area: areaGap(area(KWin.PlacementArea))})
+  groupWindows().forEach(function(screen, s) {
+    screen.forEach(function(desktop, d) {
+      desktop.forEach(winReorder)
+      desktop.filter(winIsTiled).reduce(layoutApply,
+        {area: areaGap(workspace.clientArea(KWin.PlacementArea, s, d))})
+    })
+  })
 }
 
 /**
  * Toggles whether the active window is tiled.
  */
 function slotToggle() {
-  if (workspace.activeClient)
-    workspace.activeClient.tiled = !workspace.activeClient.tiled
+  if (workspace.activeClient) {
+    workspace.activeClient._isTiled = !workspace.activeClient._isTiled
+    if (!workspace.activeClient._isTiled) {
+      workspace.activeClient.noBorder = !workspace.activeClient._hadBorder
+    }
+  }
   layoutRefresh()
 }
 
@@ -225,7 +234,8 @@ function slotToggle() {
  * @param {Number} 1 to cycle forward, -1 backward.
  */
 function slotCycle(n) {
-  workspace.activeClient = winActiveNeighbor(allCycleables(), n)
+  workspace.activeClient = winNeighbor(workspace.activeClient, n,
+    groupWindows()[workspace.activeScreen][workspace.currentDesktop].filter(winIsCycleable))
 }
 
 /**
@@ -234,7 +244,8 @@ function slotCycle(n) {
  * @param {Number} 1 to swap forward, -1 backward.
  */
 function slotSwap(n) {
-  winSwap(workspace.activeClient, winActiveNeighbor(allTiles(), n))
+  winSwapTile(workspace.activeClient, winNeighbor(workspace.activeClient, n,
+    groupWindows()[workspace.activeScreen][workspace.currentDesktop].filter(winIsTiled)))
   layoutRefresh()
 }
 
@@ -251,7 +262,7 @@ function slotSplit(n) {
 workspace.clientAdded.connect(winInit)
 workspace.clientRemoved.connect(layoutRefresh)
 workspace.clientActivated.connect(layoutRefresh)
-workspace.currentDesktopChanged.connect(layoutRefresh)
+workspace.desktopPresenceChanged.connect(layoutRefresh)
 
 registerShortcut('TilingClose',
   'Tiling: Close',
@@ -273,6 +284,14 @@ registerShortcut('TilingToPreviousDesktop',
   'Tiling: To Previous Desktop',
   'Alt+Shift+U',
   workspace.slotWindowToPreviousDesktop)
+registerShortcut('TilingNextScreen',
+  'Tiling: Next Screen',
+  'Alt+S',
+  workspace.slotSwitchToNextScreen)
+registerShortcut('TilingToNextScreen',
+  'Tiling: To Next Screen',
+  'Alt+Shift+S',
+  workspace.slotWindowToNextScreen)
 registerShortcut('TilingToggle',
   'Tiling: Toggle',
   'Alt+M',
