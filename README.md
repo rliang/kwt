@@ -5,8 +5,10 @@ A hackable KWin tiling window manager.
 ## Installation
 
 ```sh
-git clone https://github.com/rliang/kwt ~/.local/share/kwin/scripts/kwt
-plasmapkg -t kwinscript -i ~/.local/share/kwin/scripts/kwt
+cd ~/.local/share/kwin/scripts
+git clone --depth=1 https://github.com/rliang/kwt
+plasmapkg -t kwinscript -i kwt
+ln -s kwt/metadata.desktop ~/.local/share/kservices5/kwin-script-kwt.desktop
 qdbus org.kde.KWin /KWin reconfigure
 ```
 
@@ -33,8 +35,6 @@ qdbus org.kde.KWin /KWin reconfigure
 * `auto-tile=true` Whether to tile windows at creation or wait for user input.
 * `append-tiles=true` Whether to append new tiles to the end of the list or insert at the beginning.
 * `maximize-single=true` Whether to maximize a tile if it is the only one.
-* `maximize-noborder=true` Whether to remove borders from maximized tiled windows.
-* `tiles-noborder=false` Whether to remove borders from tiled windows.
-* `gaps=6` Gaps around the screen space and between tiles.
 * `split-ratio=0.5` Screen area split ratio between tiled windows.
 * `split-ratio-step=0.05` Split ratio step increment.
+* `gaps=0` Gaps around the screen space and between tiles.

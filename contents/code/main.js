@@ -4,12 +4,12 @@ var AUTO_TILE = readConfig('auto-tile', true)
 var APPEND_TILES = readConfig('append-tiles', true)
 /** @type {Boolean} whether to instead maximize a lone tile. */
 var MAXIMIZE_SINGLE = readConfig('maximize-single', true)
-/** @type {Number} gaps around the screen space and between tiled windows. */
-var GAPS = readConfig('gaps', 12)
 /** @type {Number} screen area split ratio between tiled windows. */
 var SPLIT_RATIO = readConfig('split-ratio', 0.5)
 /** @type {Number} split ratio step increment. */
 var SPLIT_RATIO_STEP = readConfig('split-ratio-step', 0.05)
+/** @type {Number} gaps around the screen space and between tiled windows. */
+var GAPS = readConfig('gaps', 0)
 
 /**
  * Checks whether a window is cycleable.

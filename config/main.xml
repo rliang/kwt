@@ -14,10 +14,6 @@
       <default>true</default>
       <label>Whether to maximize a tile if it is the only one.</label>
     </entry>
-    <entry name="gaps" type="int">
-      <label>Gaps around the screen space and between tiles.</label>
-      <default>6</default>
-    </entry>
     <entry name="split-ratio" type="float">
       <label>Screen area split ratio between tiled windows.</label>
       <default>0.5</default>
@@ -25,6 +21,10 @@
     <entry name="split-ratio-step" type="float">
       <label>Split ratio step increment.</label>
       <default>0.05</default>
+    </entry>
+    <entry name="gaps" type="int">
+      <label>Gaps around the screen space and between tiles.</label>
+      <default>0</default>
     </entry>
   </group>
 </kcfg>
