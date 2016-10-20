@@ -27,9 +27,9 @@ qdbus org.kde.KWin /KWin reconfigure
 * `Alt+L` Increase Split
 * `Alt+H` Decrease Split
 
-## Default Options `~/.config/kwtrc`
+## Default Options `~/.config/kwinrc`
 
-`[kwt]`
+`[Script-kwt]`
 * `auto-tile=true` Whether to tile windows at creation or wait for user input.
 * `append-tiles=true` Whether to append new tiles to the end of the list or insert at the beginning.
 * `maximize-single=true` Whether to maximize a tile if it is the only one.
