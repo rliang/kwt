@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <kcfg xmlns="http://www.kde.org/standards/kcfg/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
-  <kcfgfile name="kwtrc"/>
-  <group name="kwt">
+  <kcfgfile name=""/>
+  <group name="">
     <entry name="auto-tile" type="bool">
       <default>true</default>
       <label>Whether to tile windows at creation or wait for user input.</label>
@@ -13,14 +13,6 @@
     <entry name="maximize-single" type="bool">
       <default>true</default>
       <label>Whether to maximize a tile if it is the only one.</label>
-    </entry>
-    <entry name="maximize-noborder" type="bool">
-      <default>true</default>
-      <label>Whether to remove borders from maximized tiled windows.</label>
-    </entry>
-    <entry name="tiles-noborder" type="bool">
-      <default>false</default>
-      <label>Whether to remove borders from tiled windows.</label>
     </entry>
     <entry name="gaps" type="int">
       <label>Gaps around the screen space and between tiles.</label>

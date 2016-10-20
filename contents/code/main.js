@@ -4,10 +4,6 @@ var AUTO_TILE = readConfig('auto-tile', true)
 var APPEND_TILES = readConfig('append-tiles', true)
 /** @type {Boolean} whether to instead maximize a lone tile. */
 var MAXIMIZE_SINGLE = readConfig('maximize-single', true)
-/** @type {Boolean} whether to remove borders from maximized tiled windows. */
-var MAXIMIZE_NOBORDER = readConfig('maximize-noborder', true)
-/** @type {Boolean} whether to remove borders from tiled windows. */
-var TILES_NOBORDER = readConfig('tiles-noborder', false)
 /** @type {Number} gaps around the screen space and between tiled windows. */
 var GAPS = readConfig('gaps', 12)
 /** @type {Number} screen area split ratio between tiled windows. */
@@ -55,7 +51,6 @@ function winIsTiled(win) {
 function winInit(win) {
   win._index = APPEND_TILES ? Infinity : -Infinity
   win._isTiled = AUTO_TILE && winIsInitiallyTileable(win)
-  win._hadBorder = !win.noBorder
 }
 
 /**
@@ -183,16 +178,12 @@ function groupWindows() {
 function layoutApply(state, win, i, wins) {
   if (!state.part)
     state.part = state.area.width > state.area.height ? 'left' : 'up'
-  if (wins.length === 1 && MAXIMIZE_SINGLE) {
-    win.noBorder = MAXIMIZE_NOBORDER
+  if (wins.length === 1 && MAXIMIZE_SINGLE)
     win.geometry = workspace.clientArea(KWin.MaximizeArea, win.screen, win.desktop)
-  } else if (i >= wins.length - 1) {
-    win.noBorder = !win._hadBorder && TILES_NOBORDER
+  else if (i >= wins.length - 1)
     win.geometry = areaGap(state.area)
-  } else {
-    win.noBorder = !win._hadBorder && TILES_NOBORDER
+  else
     win.geometry = areaGap(areaFillPart(state.area, state.part))
-  }
   state.area = areaFillPart(state.area, {
     left: 'right', up: 'down', right: 'left', down: 'up',
   }[state.part])
@@ -219,12 +210,8 @@ function layoutRefresh() {
  * Toggles whether the active window is tiled.
  */
 function slotToggle() {
-  if (workspace.activeClient) {
+  if (workspace.activeClient)
     workspace.activeClient._isTiled = !workspace.activeClient._isTiled
-    if (!workspace.activeClient._isTiled) {
-      workspace.activeClient.noBorder = !workspace.activeClient._hadBorder
-    }
-  }
   layoutRefresh()
 }
 
