@@ -22,7 +22,7 @@ function winIsCycleable(win) {
     && !win.skipSwitcher && !win.skipTaskbar && !win.skipPager
 }
 
-/**
+/**kwt
  * Checks whether a window is initially tileable.
  *
  * @param {KWin.Client} win the window.
@@ -61,6 +61,8 @@ function winInit(win) {
  * @return {KWin.Client} the window.
  */
 function winReorder(win, i) {
+  if (win._index !== i)
+    win._gap = Math.random() * GAPS / 2 + GAPS / 2;
   win._index = i
 }
 
@@ -196,12 +198,13 @@ function layoutApply(state, win, i, wins) {
 /**
  * Refreshes the layout.
  */
-function layoutRefresh() {
+function refresh() {
   groupWindows().forEach(function(screen, s) {
     screen.forEach(function(desktop, d) {
       desktop.forEach(winReorder)
-      desktop.filter(winIsTiled).reduce(layoutApply,
-        {area: areaGap(workspace.clientArea(KWin.PlacementArea, s, d))})
+      desktop.filter(winIsTiled).reduce(layoutApply, {
+        area: areaGap(workspace.clientArea(KWin.PlacementArea, s, d))
+      })
     })
   })
 }
@@ -212,7 +215,7 @@ function layoutRefresh() {
 function slotToggle() {
   if (workspace.activeClient)
     workspace.activeClient._isTiled = !workspace.activeClient._isTiled
-  layoutRefresh()
+  refresh()
 }
 
 /**
@@ -233,7 +236,7 @@ function slotCycle(n) {
 function slotSwap(n) {
   winSwapTile(workspace.activeClient, winNeighbor(workspace.activeClient, n,
     groupWindows()[workspace.activeScreen][workspace.currentDesktop].filter(winIsTiled)))
-  layoutRefresh()
+  refresh()
 }
 
 /**
@@ -243,13 +246,13 @@ function slotSwap(n) {
  */
 function slotSplit(n) {
   SPLIT_RATIO += SPLIT_RATIO_STEP * n
-  layoutRefresh()
+  refresh()
 }
 
 workspace.clientAdded.connect(winInit)
-workspace.clientRemoved.connect(layoutRefresh)
-workspace.clientActivated.connect(layoutRefresh)
-workspace.desktopPresenceChanged.connect(layoutRefresh)
+workspace.clientRemoved.connect(refresh)
+workspace.clientActivated.connect(refresh)
+workspace.desktopPresenceChanged.connect(refresh)
 
 registerShortcut('TilingClose',
   'Tiling: Close',

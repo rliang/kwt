@@ -7,13 +7,13 @@ Type=Service
 X-Plasma-API=javascript
 X-Plasma-MainScript=code/main.js
 
-X-KDE-PluginInfo-Author=Ricardo Liang
-X-KDE-PluginInfo-Email=ricardoliang@gmail.com
 X-KDE-PluginInfo-Name=kwt
 X-KDE-PluginInfo-Version=0.0.2
+X-KDE-PluginInfo-Author=Ricardo Liang
+X-KDE-PluginInfo-Email=ricardoliang@gmail.com
+X-KDE-PluginInfo-Website=https://github.com/rliang/kwt
 X-KDE-PluginInfo-EnabledByDefault=true
-
 X-KDE-PluginInfo-Depends=
 X-KDE-PluginInfo-License=GPL
 X-KDE-ServiceTypes=KWin/Script
-X-KDE-PluginKeyword=kwt
+X-KDE-PluginKeyword=tiling

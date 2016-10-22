@@ -34,7 +34,7 @@ qdbus org.kde.KWin /KWin reconfigure
 `[Script-kwt]`
 * `auto-tile=true` Whether to tile windows at creation or wait for user input.
 * `append-tiles=true` Whether to append new tiles to the end of the list or insert at the beginning.
-* `maximize-single=true` Whether to maximize a tile if it is the only one.
+* `maximize-single=true` Whether to instead maximize a lone tile.
 * `split-ratio=0.5` Screen area split ratio between tiled windows.
 * `split-ratio-step=0.05` Split ratio step increment.
 * `gaps=0` Gaps around the screen space and between tiles.
