@@ -1,11 +1,15 @@
 var TILES = {}
 var RATIO = 0.5
 var RSTEP = 0.05
-var DGAPS = 8
-var WGAPS = 8
+var WGAPS = 16
+
+function maximized(w) {
+    var area = workspace.clientArea(KWin.MaximizeArea, w.screen, w.desktop)
+    return Object.keys(area).every(function(k) { return area[k] === w.geometry[k] })
+}
 
 function tiled(w) {
-    return !w.fullScreen && !w.transient && w.moveable && w.resizeable && w.closeable
+    return !maximized(w) && !w.fullScreen && !w.transient && w.moveable && w.resizeable && w.closeable
 }
 
 function windows(screen, desktop) {
@@ -60,7 +64,7 @@ function layout(wins, area, part) {
         return
     var w = wins.shift()
     if (!area)
-        area = gap(workspace.clientArea(KWin.PlacementArea, w.screen, w.desktop), DGAPS)
+        area = gap(workspace.clientArea(KWin.PlacementArea, w.screen, w.desktop), WGAPS)
     if (!part)
         part = area.width > area.height ? 'left' : 'up'
     var geom
@@ -73,15 +77,15 @@ function layout(wins, area, part) {
     } else if (part == 'up') {
         geom = trim(area, {height: area.height * (1 - RATIO)})
         area = trim(area, {y: area.height * RATIO})
-        part = 'down'
+        part = 'right'
     } else if (part == 'right') {
         geom = trim(area, {x: area.width * RATIO})
         area = trim(area, {width: area.width * (1 - RATIO)})
-        part = 'left'
+        part = 'down'
     } else if (part == 'down') {
         geom = trim(area, {y: area.height * RATIO})
         area = trim(area, {height: area.height * (1 - RATIO)})
-        part = 'up'
+        part = 'left'
     }
     w.geometry = gap(geom, WGAPS)
     layout(wins, area, part)
