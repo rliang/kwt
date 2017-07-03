@@ -1,12 +1,9 @@
 [Desktop Entry]
 Name=kwt
-Comment=A hackable KWin tiling window manager.
+Comment=A small KWin tiling window manager.
 Icon=preferences-system-windows-script-test
-Type=Service
-
 X-Plasma-API=javascript
 X-Plasma-MainScript=code/main.js
-
 X-KDE-PluginInfo-Name=kwt
 X-KDE-PluginInfo-Version=0.0.2
 X-KDE-PluginInfo-Author=Ricardo Liang
@@ -16,4 +13,4 @@ X-KDE-PluginInfo-EnabledByDefault=true
 X-KDE-PluginInfo-Depends=
 X-KDE-PluginInfo-License=GPL
 X-KDE-ServiceTypes=KWin/Script
-X-KDE-PluginKeyword=tiling
+Type=Service
