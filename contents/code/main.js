@@ -1,132 +1,213 @@
-var TILES = {}
-var RATIO = 0.5
-var RSTEP = 0.05
-var WGAPS = 16
+var MASTER_COUNT = readConfig('initialMasterCount', 1);
+var SPLIT_RATIO  = readConfig('initialSplitRatio', 0.5);
 
-function maximized(w) {
-    var area = workspace.clientArea(KWin.MaximizeArea, w.screen, w.desktop)
-    return Object.keys(area).every(function(k) { return area[k] === w.geometry[k] })
-}
+var LAYOUTS = {
+    horizontal: function(wins, area) {
+        if (wins.length === 1)
+            return [area];
+        var mc = Math.max(Math.min(MASTER_COUNT, wins.length - 1), 1);
+        return wins.slice(0, mc).map(function(_, i, part) {
+            return {
+                x:      area.x,
+                y:      area.y + (i * area.height / part.length),
+                width:  area.width * SPLIT_RATIO,
+                height: area.height / part.length,
+            };
+        }).concat(wins.slice(mc).map(function(_, i, part) {
+            return {
+                x:      area.x + area.width * SPLIT_RATIO,
+                y:      area.y + (i * area.height / part.length),
+                width:  area.width * (1 - SPLIT_RATIO),
+                height: area.height / part.length,
+            };
+        }));
+    },
+    vertical: function(wins, area) {
+        if (wins.length === 1)
+            return [area];
+        var mc = Math.max(Math.min(MASTER_COUNT, wins.length - 1), 1);
+        return wins.slice(0, mc).map(function(_, i, part) {
+            return {
+                x:      area.x + (i * area.width / part.length),
+                y:      area.y,
+                width:  area.width / part.length,
+                height: area.height * SPLIT_RATIO
+            };
+        }).concat(wins.slice(mc).map(function(_, i, part) {
+            return {
+                x:      area.x + (i * area.width / part.length),
+                y:      area.y + area.width * SPLIT_RATIO,
+                width:  area.width / part.length,
+                height: area.height * (1 - SPLIT_RATIO)
+            };
+        }));
+    },
+};
 
-function tiled(w) {
-    return !maximized(w) && !w.fullScreen && !w.transient && w.moveable && w.resizeable && w.closeable
-}
+var AVAILABLE_LAYOUTS = eval(readConfig('availableLayouts', "['horizontal','vertical']").toString());
+var TILE_TYPES        = eval(readConfig('tileTypes', "['normalWindow']").toString());
+var MARGINS           = eval(readConfig('margins', '[8,8,8,8]').toString());
+var MINIMUM_GAPS      = eval(readConfig('minimumGaps', '[8,8,8,8]').toString());
+var MAXIMUM_GAPS      = eval(readConfig('maximumGaps', '[8,8,8,8]').toString());
 
-function windows(screen, desktop) {
+var CURRENT_TILES = {};
+var CURRENT_LAYOUT = 0;
+
+function getTiles(screen, desktop) {
     return workspace.clientList().filter(function(w) {
-        return w.managed && !w.deleted &&
-            !w.specialWindow && !w.skipSwitcher && !w.skipTaskbar && !w.skipPager &&
-            w.screen === screen && w.desktop === desktop
+        return CURRENT_TILES[w.windowId]
+            && w.screen === screen && w.desktop === desktop;
     }).sort(function(w1, w2) {
-        return !tiled(w1) ? -1 : !tiled(w2) ? +1 :
-            TILES[w1.windowId] > TILES[w2.windowId] ? +1 :
-            TILES[w1.windowId] < TILES[w2.windowId] ? -1 :
-            0
-    }).map(function(w, i) {
-        if (tiled(w))
-            TILES[w.windowId] = i
-        return w
-    })
+        return CURRENT_TILES[w1.windowId].idx > CURRENT_TILES[w2.windowId].idx ? 1
+            : CURRENT_TILES[w1.windowId].idx < CURRENT_TILES[w2.windowId].idx ? -1
+            : 0;
+    });
 }
 
-function neighbor(w, n, wins) {
-    var i = wins.map(function(w) { return w.windowId }).indexOf(w.windowId) + n
-    if (i < 0)
-        return wins[wins.length - 1]
-    if (i >= wins.length)
-        return wins[0]
-    return wins[i]
-}
-
-function swap(w1, w2) {
-    if (w1 && w2) {
-        var temp = TILES[w1.windowId]
-        TILES[w1.windowId] = TILES[w2.windowId]
-        TILES[w2.windowId] = temp
-    }
-}
-
-function trim(area, rect) {
+function addGaps(area, x, y, width, height) {
     return {
-        x: area.x + (rect.x || 0),
-        y: area.y + (rect.y || 0),
-        width: area.width - (rect.x || 0) - (rect.width || 0),
-        height: area.height - (rect.y || 0) - (rect.height || 0),
-    }
+        x:      area.x + x,
+        y:      area.y + y,
+        width:  area.width - x - width,
+        height: area.height - y - height,
+    };
 }
 
-function gap(area, n) {
-    return trim(area, {x: n, y: n, width: n, height: n})
-}
-
-function layout(wins, area, part) {
-    if (!wins.length)
-        return
-    var w = wins.shift()
-    if (!area)
-        area = gap(workspace.clientArea(KWin.PlacementArea, w.screen, w.desktop), WGAPS)
-    if (!part)
-        part = area.width > area.height ? 'left' : 'up'
-    var geom
-    if (!wins.length) {
-        geom = area
-    } else if (part == 'left') {
-        geom = trim(area, {width: area.width * (1 - RATIO)})
-        area = trim(area, {x: area.width * RATIO})
-        part = 'up'
-    } else if (part == 'up') {
-        geom = trim(area, {height: area.height * (1 - RATIO)})
-        area = trim(area, {y: area.height * RATIO})
-        part = 'right'
-    } else if (part == 'right') {
-        geom = trim(area, {x: area.width * RATIO})
-        area = trim(area, {width: area.width * (1 - RATIO)})
-        part = 'down'
-    } else if (part == 'down') {
-        geom = trim(area, {y: area.height * RATIO})
-        area = trim(area, {height: area.height * (1 - RATIO)})
-        part = 'left'
-    }
-    w.geometry = gap(geom, WGAPS)
-    layout(wins, area, part)
+function refreshTile(w, idx, rect) {
+    if (CURRENT_TILES[w.windowId].idx !== idx)
+        CURRENT_TILES[w.windowId] = {
+            idx: idx,
+            gap: MINIMUM_GAPS.map(function(g, i) {
+                return g + Math.random() * (MAXIMUM_GAPS[i] - g);
+            }),
+        };
+    w.geometry = addGaps.apply(this, [rect].concat(CURRENT_TILES[w.windowId].gap));
 }
 
 function refresh() {
-    for (var s = 0; s < workspace.numScreens; s++)
-        for (var d = 1; d <= workspace.desktops; d++)
-            layout(windows(s, d).filter(tiled))
+    var layout = LAYOUTS[AVAILABLE_LAYOUTS[CURRENT_LAYOUT]];
+    for (var s = 0; s < workspace.numScreens; s++) {
+        for (var d = 1; d <= workspace.desktops; d++) {
+            var area = workspace.clientArea(KWin.PlacementArea, s, d);
+            var wins = getTiles(s, d);
+            var geos = layout(wins, addGaps.apply(this, [area].concat(MARGINS)));
+            wins.forEach(function(w, i) { refreshTile(w, i, geos[i]); });
+        }
+    }
 }
 
-refresh()
+function isMaximized(w) {
+    var area = workspace.clientArea(KWin.MaximizeArea, w.screen, w.desktop);
+    return Object.keys(area).every(function(k) { return area[k] === w.geometry[k]; });
+}
 
-workspace.clientAdded.connect(refresh)
-workspace.clientRemoved.connect(refresh)
-workspace.clientActivated.connect(refresh)
-workspace.desktopPresenceChanged.connect(refresh)
+function isTileable(w) {
+    return !isMaximized(w) && !w.fullScreen && w.managed && !w.deleted
+        && !w.skipSwitcher && !w.skipPager && !w.skipTaskbar
+        && TILE_TYPES.some(function(t) { return w[t]; });
+}
 
-registerShortcut('TilingCycleNext', 'Tiling: Cycle Next', 'Meta+J', function() {
-    workspace.activeClient = neighbor(workspace.activeClient, +1,
-        windows(workspace.activeScreen, workspace.currentDesktop))
-})
-registerShortcut('TilingCyclePrevious', 'Tiling: Cycle Previous', 'Meta+K', function() {
-    workspace.activeClient = neighbor(workspace.activeClient, -1,
-        windows(workspace.activeScreen, workspace.currentDesktop))
-})
-registerShortcut('TilingSwapNext', 'Tiling: Swap Next', 'Meta+Shift+J', function() {
-    swap(workspace.activeClient, neighbor(workspace.activeClient, +1,
-        windows(workspace.activeScreen, workspace.currentDesktop).filter(tiled)))
-    refresh()
-})
-registerShortcut('TilingSwapPrevious', 'Tiling: Swap Previous', 'Meta+Shift+K', function() {
-    swap(workspace.activeClient, neighbor(workspace.activeClient, -1,
-        windows(workspace.activeScreen, workspace.currentDesktop).filter(tiled)))
-    refresh()
-})
-registerShortcut('TilingIncreaseSplit', 'Tiling: Increase Split', 'Meta+L', function() {
-    RATIO += RSTEP
-    refresh()
-})
-registerShortcut('TilingDecreaseSplit', 'Tiling: Decrease Split', 'Meta+H', function() {
-    RATIO -= RSTEP
-    refresh()
-})
+workspace.clientList().forEach(function(w) {
+    if (isTileable(w))
+        CURRENT_TILES[w.windowId] = {idx: Infinity};
+});
+refresh();
+
+workspace.clientAdded.connect(function(w) {
+    if (isTileable(w))
+        CURRENT_TILES[w.windowId] = {idx: Infinity};
+    refresh();
+});
+workspace.clientRemoved.connect(function(w) {
+    delete CURRENT_TILES[w.windowId];
+    refresh();
+});
+workspace.clientActivated.connect(refresh);
+workspace.desktopPresenceChanged.connect(refresh);
+
+function getNeighbor(n) {
+    var wins = getTiles(workspace.activeScreen, workspace.currentDesktop);
+    var k = n + wins.map(function(w) { return w.windowId; })
+        .indexOf(workspace.activeClient.windowId);
+    return k < 0 ? wins[wins.length - 1] : k >= wins.length ? wins[0] : wins[k];
+}
+
+function swapTiles(w1, w2) {
+    if (w1 && w2 && CURRENT_TILES[w1.windowId] && CURRENT_TILES[w2.windowId]) {
+        var idx = CURRENT_TILES[w1.windowId].idx;
+        CURRENT_TILES[w1.windowId].idx = CURRENT_TILES[w2.windowId].idx;
+        CURRENT_TILES[w2.windowId].idx = idx;
+    }
+}
+
+registerShortcut('KWTToggleTile', 'KWT: Toggle Tile',
+    'Meta+X',
+    function() {
+        if (CURRENT_TILES[workspace.activeClient.windowId])
+            delete CURRENT_TILES[workspace.activeClient.windowId];
+        else
+            CURRENT_TILES[workspace.activeClient.windowId] = {idx: Infinity};
+        refresh();
+    });
+registerShortcut('KWTCycleNext', 'KWT: Cycle Next',
+    'Meta+J',
+    function() {
+        workspace.activeClient = getNeighbor(1);
+    });
+registerShortcut('KWTCyclePrevious', 'KWT: Cycle Previous',
+    'Meta+K',
+    function() {
+        workspace.activeClient = getNeighbor(-1);
+    });
+registerShortcut('KWTSwapNext', 'KWT: Swap Next',
+    'Meta+Shift+J',
+    function() {
+        swapTiles(workspace.activeClient, getNeighbor(1));
+        refresh();
+    });
+registerShortcut('KWTSwapPrevious', 'KWT: Swap Previous',
+    'Meta+Shift+K',
+    function() {
+        swapTiles(workspace.activeClient, getNeighbor(-1));
+        refresh();
+    });
+registerShortcut('KWTIncreaseSplit', 'KWT: Increase Split',
+    'Meta+L',
+    function() {
+        if ((SPLIT_RATIO += readConfig('splitRatioStep', 0.05)) >= 0.9)
+            SPLIT_RATIO = 0.9;
+        refresh();
+    });
+registerShortcut('KWTDecreaseSplit', 'KWT: Decrease Split',
+    'Meta+H',
+    function() {
+        if ((SPLIT_RATIO -= readConfig('splitRatioStep', 0.05)) < 0.1)
+            SPLIT_RATIO = 0.1;
+        refresh();
+    });
+registerShortcut('KWTIncreaseMasterCount', 'KWT: Increase Master Count',
+    'Meta+Shift+H',
+    function() {
+        MASTER_COUNT += 1;
+        refresh();
+    });
+registerShortcut('KWTDecreaseMasterCount', 'KWT: Decrease Master Count',
+    'Meta+Shift+L',
+    function() {
+        MASTER_COUNT -= 1;
+        refresh();
+    });
+registerShortcut('KWTLayoutNext', 'KWT: Layout Next',
+    'Meta+Z',
+    function() {
+        if ((CURRENT_LAYOUT += 1) >= AVAILABLE_LAYOUTS.length)
+            CURRENT_LAYOUT = 0;
+        refresh();
+    });
+registerShortcut('KWTLayoutPrevious', 'KWT: Layout Previous',
+    'Meta+Shift+Z',
+    function() {
+        if ((CURRENT_LAYOUT -= 1) < 0)
+            CURRENT_LAYOUT = AVAILABLE_LAYOUTS.length - 1;
+        refresh();
+    });

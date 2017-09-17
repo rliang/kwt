@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <widget class="QWidget">
+  <layout class="QFormLayout">
+   <item row="0" column="0">
+    <widget class="QLabel">
+     <property name="text">
+      <string>Available layouts</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QLineEdit" name="kcfg_availableLayouts"/>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel">
+     <property name="text">
+      <string>Tile types</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QLineEdit" name="kcfg_tileTypes"/>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel">
+     <property name="text">
+      <string>Initial master count</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QLineEdit" name="kcfg_initialMasterCount"/>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel">
+     <property name="text">
+      <string>Initial split ratio</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QLineEdit" name="kcfg_initialSplitRatio"/>
+   </item>
+   <item row="4" column="0">
+    <widget class="QLabel">
+     <property name="text">
+      <string>Split ratio step</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QLineEdit" name="kcfg_splitRatioStep"/>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel">
+     <property name="text">
+      <string>Margins</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="QLineEdit" name="kcfg_margins"/>
+   </item>
+   <item row="6" column="0">
+    <widget class="QLabel">
+     <property name="text">
+      <string>Minimum gaps</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="1">
+    <widget class="QLineEdit" name="kcfg_minimumGaps"/>
+   </item>
+   <item row="7" column="0">
+    <widget class="QLabel">
+     <property name="text">
+      <string>Maximum gaps</string>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="1">
+    <widget class="QLineEdit" name="kcfg_maximumGaps"/>
+   </item>
+  </layout>
+ </widget>
+</ui>

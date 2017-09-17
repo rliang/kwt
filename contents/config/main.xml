@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+                          http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+  <kcfgfile name=""/>
+  <group name="">
+    <entry name="availableLayouts" type="string">
+      <default>['horizontal','vertical']</default>
+    </entry>
+    <entry name="tileTypes" type="string">
+      <default>['normalWindow']</default>
+    </entry>
+    <entry name="initialMasterCount" type="int">
+      <default>1</default>
+    </entry>
+    <entry name="initialSplitRatio" type="double">
+      <default>0.5</default>
+    </entry>
+    <entry name="splitRatioStep" type="double">
+      <default>0.05</default>
+    </entry>
+    <entry name="margins" type="string">
+      <default>[8,8,8,8]</default>
+    </entry>
+    <entry name="minimumGaps" type="string">
+      <default>[8,8,8,8]</default>
+    </entry>
+    <entry name="maximumGaps" type="string">
+      <default>[8,8,8,8]</default>
+    </entry>
+  </group>
+</kcfg>
